@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import parse from 'html-react-parser';
 import { useQuery, useMutation } from '@apollo/react-hooks';
@@ -62,10 +62,16 @@ const CAST_VOTE = gql`
 `;
 
 const Content = () => {
+  console.log('**** Rendering ****');
   const [notes, setNotes] = useState('');
   const [value, setValue] = useState(0);
+  const [feedbackFocused, setFeedbackFocused] = useState('foo');
+  console.log(`FeedbackFocused 1: ${feedbackFocused}`);
+  let someBool = false;
 
+  let session = null;
   let toastId = null;
+
   const forceUpdate = () => {
     ButterToast.dismiss(toastId);
     ButterToast.raise({
@@ -88,6 +94,68 @@ const Content = () => {
       throw new Error(createError);
     },
   });
+
+  const submitVote = yesVote => {
+    toastId = ButterToast.raise({
+      sticky: false,
+      content: (
+        <Cinnamon.Crisp
+          scheme={Cinnamon.Crisp.SCHEME_BLUE}
+          content={() => <div>Casting Vote...</div>}
+          title="Vote"
+        />
+      ),
+    });
+    const vars = {
+      eventId: process.env.CURRENT_EVENT_ID,
+      vote: {
+        sessionId: session.id,
+        vote: yesVote,
+        notes,
+      },
+    };
+    castVote({
+      variables: vars,
+    });
+  };
+
+  const isFeedbackFocused = () => {
+    console.log(`FeedbackFocused 3: ${feedbackFocused}`);
+
+    return feedbackFocused;
+  };
+
+  // const isFocused = () => isFeedbackFocused;
+
+  // const handleKeyPress = key => {
+  //   console.log(key);
+
+  //   console.log(`Feedback Has Focus XXXX: ${isFocused()}`);
+  //   const yesValues = ['y', 'Y'];
+  //   const validVotes = [...yesValues, 'n', 'N'];
+  //   if (validVotes.includes(key)) {
+  //     const vote = yesValues.includes(key);
+  //   }
+  // };
+
+  useEffect(() => {
+    const keyPressHandler = e => {
+      const { key } = e;
+      console.log(`KeyPressHandler - Key: ${key}`);
+      console.log(`KeyPressHandler - FeedbackFocused: ${isFeedbackFocused()}`);
+      console.log(`SomeBool: ${someBool}`);
+      const yesValues = ['y', 'Y'];
+      const validVotes = [...yesValues, 'n', 'N'];
+      if (validVotes.includes(key)) {
+        const vote = yesValues.includes(key);
+      }
+    };
+
+    document.addEventListener('keyup', keyPressHandler);
+    return () => {
+      document.removeEventListener('keyp', keyPressHandler);
+    };
+  }, []);
 
   const {
     loading: sessionsLoading,
@@ -112,32 +180,10 @@ const Content = () => {
   const totalRemaining = root.unVoted.length - (value + 1);
   const totalVotedOn = totalSubmitted - totalRemaining;
 
-  const session = root.unVoted ? root.unVoted[value] : null;
+  session = root.unVoted ? root.unVoted[value] : null;
 
   if (session) {
-    const submitVote = yesVote => {
-      toastId = ButterToast.raise({
-        sticky: false,
-        content: (
-          <Cinnamon.Crisp
-            scheme={Cinnamon.Crisp.SCHEME_BLUE}
-            content={() => <div>Casting Vote...</div>}
-            title="Vote"
-          />
-        ),
-      });
-      const vars = {
-        eventId: process.env.CURRENT_EVENT_ID,
-        vote: {
-          sessionId: session.id,
-          vote: yesVote,
-          notes,
-        },
-      };
-      castVote({
-        variables: vars,
-      });
-    };
+    console.log(`FeedbackFocused 2: ${feedbackFocused}`);
 
     const converter = new MarkdownIt();
     return (
@@ -167,7 +213,16 @@ const Content = () => {
           <form className="input-form">
             <textarea
               rows="5"
-              onChange={event => setNotes(event.target.value)}
+              onChange={event => {
+                setNotes(event.target.value);
+                // setFeedbackFocused(true);
+              }}
+              onFocus={() => {
+                console.log('OnFocus...');
+                setFeedbackFocused('bar');
+                someBool = true;
+              }}
+              // onFocusOut={() => setFeedbackFocused(false)}
             />
           </form>
         </Section>
