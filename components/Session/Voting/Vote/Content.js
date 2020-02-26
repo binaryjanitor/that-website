@@ -65,9 +65,9 @@ const Content = () => {
   console.log('**** Rendering ****');
   const [notes, setNotes] = useState('');
   const [value, setValue] = useState(0);
-  const [feedbackFocused, setFeedbackFocused] = useState('foo');
+  const [feedbackFocused, setFeedbackFocused] = useState(false);
   console.log(`FeedbackFocused 1: ${feedbackFocused}`);
-  let someBool = false;
+  const someBool = false;
 
   let session = null;
   let toastId = null;
@@ -119,43 +119,18 @@ const Content = () => {
     });
   };
 
-  const isFeedbackFocused = () => {
-    console.log(`FeedbackFocused 3: ${feedbackFocused}`);
-
-    return feedbackFocused;
+  const keyPressHandler = (e, isFeedback) => {
+    const { key } = e;
+    console.log(`KeyPressHandler - Key: ${key}`);
+    console.log(`KeyPressHandler - FeedbackFocused: ${isFeedback}`);
+    console.log(`SomeBool: ${someBool}`);
+    const yesValues = ['y', 'Y'];
+    const validVotes = [...yesValues, 'n', 'N'];
+    if (validVotes.includes(key)) {
+      const vote = yesValues.includes(key);
+      console.log('VOTE YO!', vote);
+    }
   };
-
-  // const isFocused = () => isFeedbackFocused;
-
-  // const handleKeyPress = key => {
-  //   console.log(key);
-
-  //   console.log(`Feedback Has Focus XXXX: ${isFocused()}`);
-  //   const yesValues = ['y', 'Y'];
-  //   const validVotes = [...yesValues, 'n', 'N'];
-  //   if (validVotes.includes(key)) {
-  //     const vote = yesValues.includes(key);
-  //   }
-  // };
-
-  useEffect(() => {
-    const keyPressHandler = e => {
-      const { key } = e;
-      console.log(`KeyPressHandler - Key: ${key}`);
-      console.log(`KeyPressHandler - FeedbackFocused: ${isFeedbackFocused()}`);
-      console.log(`SomeBool: ${someBool}`);
-      const yesValues = ['y', 'Y'];
-      const validVotes = [...yesValues, 'n', 'N'];
-      if (validVotes.includes(key)) {
-        const vote = yesValues.includes(key);
-      }
-    };
-
-    document.addEventListener('keyup', keyPressHandler);
-    return () => {
-      document.removeEventListener('keyp', keyPressHandler);
-    };
-  }, []);
 
   const {
     loading: sessionsLoading,
@@ -182,9 +157,19 @@ const Content = () => {
 
   session = root.unVoted ? root.unVoted[value] : null;
 
-  if (session) {
-    console.log(`FeedbackFocused 2: ${feedbackFocused}`);
+  useEffect(() => {
+    window.addEventListener('keydown', e => {
+      keyPressHandler(e, feedbackFocused);
+    });
+    // Remove event listeners on cleanup
+    return () => {
+      window.removeEventListener('keydown', e =>
+        keyPressHandler(e, feedbackFocused),
+      );
+    };
+  }, [feedbackFocused]);
 
+  if (session) {
     const converter = new MarkdownIt();
     return (
       <MainContent>
@@ -215,14 +200,15 @@ const Content = () => {
               rows="5"
               onChange={event => {
                 setNotes(event.target.value);
-                // setFeedbackFocused(true);
+              }}
+              onBlur={() => {
+                console.log('Onblur...', feedbackFocused);
+                setFeedbackFocused(false);
               }}
               onFocus={() => {
-                console.log('OnFocus...');
-                setFeedbackFocused('bar');
-                someBool = true;
+                console.log('onFocus...', feedbackFocused);
+                setFeedbackFocused(true);
               }}
-              // onFocusOut={() => setFeedbackFocused(false)}
             />
           </form>
         </Section>
